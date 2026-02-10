@@ -1,0 +1,8 @@
+[
+  "User prefers concise answers.",
+  "User is building an AI SaaS with FastAPI, LangGraph, and Supabase.",
+  "Chose Supabase Auth over custom backend auth.",
+  "Using NVIDIA NIM / API for embeddings and chat instead of OpenAI.",
+  "Do not expose chain-of-thought or tool logs to end users.",
+  "User prefers production-grade, scalable AI architectures using FastAPI, LangGraph, and Supabase."
+]

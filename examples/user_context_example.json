@@ -1,0 +1,14 @@
+[
+  {
+    "user_id": "user_abc123",
+    "plan": "pro",
+    "usage": { "requests_this_month": 1200, "embedding_calls": 45000 },
+    "preferences": {}
+  },
+  {
+    "user_id": "user_enterprise",
+    "plan": "enterprise",
+    "usage": { "requests_this_month": 50000 },
+    "preferences": { "default_model": "mistralai/devstral-2-123b-instruct-2512" }
+  }
+]

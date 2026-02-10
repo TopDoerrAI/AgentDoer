@@ -1,0 +1,22 @@
+[
+  {
+    "source": "auth-architecture",
+    "content": "Supabase Auth should be handled on the frontend. The backend should only verify JWTs and use the service role key for server-side operations. Never expose the service role key to the client."
+  },
+  {
+    "source": "auth-architecture",
+    "content": "For RLS, create policies that allow the service role full access and restrict anon key to the rows the user is allowed to see. Use (auth.uid() = user_id) for per-user tables."
+  },
+  {
+    "source": "pricing-faq",
+    "content": "Pro plan includes 50k vector embeddings per month. Overage is $0.10 per 1k embeddings. Enterprise has custom limits and SLA."
+  },
+  {
+    "source": "api-docs",
+    "content": "POST /api/chat accepts JSON: message (string), session_id (optional), user_id (optional). Always send session_id for multi-turn; send user_id for memory and user_context."
+  },
+  {
+    "source": "runbook-incidents",
+    "content": "If the agent returns 500, check: (1) NVIDIA_API_KEY and rate limits, (2) Supabase connection and RLS, (3) tool timeouts. Logs include 'Agent error' and 'Supabase save error'."
+  }
+]
