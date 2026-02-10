@@ -32,7 +32,11 @@ NVIDIA-LLM/
    ```
 
 2. **Supabase (optional)**  
-   In Supabase SQL Editor, run `supabase/migrations/001_agent_conversations.sql` to create the conversations table.
+   In the [Supabase SQL Editor](https://supabase.com/dashboard/project/_/sql), run the migrations in order so the app can persist conversations and long-term memory:
+   - **001_agent_conversations.sql** – chat history per session  
+   - **002_agent_memories_and_user_context.sql** – long-term memory (recall_memory / store_memory) and the `match_memories` RPC. **Required** if you use memory tools or post-response memory extraction; otherwise you’ll see: `Could not find the table 'public.agent_memories'`.  
+   - **003_knowledge_chunks.sql** – only if you use the knowledge base (search_knowledge_base).  
+   Run each file’s SQL in the same project as your `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`.
 
 3. **Install**
    ```bash
@@ -75,3 +79,8 @@ Uses the same agent; edit the `prompt` variable in `main.py` or pass via env.
 | `BROWSER_HEADLESS` | `0` to show the browser window |
 | `SUPABASE_URL` | Optional; enables conversation persistence |
 | `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_KEY` | Optional; required if using Supabase |
+
+## Troubleshooting
+
+- **`Could not find the table 'public.agent_memories'`**  
+  Run the second migration: in Supabase → SQL Editor, execute the contents of `supabase/migrations/002_agent_memories_and_user_context.sql`. That creates the `agent_memories` table and the `match_memories` function used by recall_memory, store_memory, and post-response memory extraction.

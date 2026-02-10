@@ -116,6 +116,48 @@ def press_enter(selector: str) -> str:
 
 
 @tool
+def login(
+    username_selector: str,
+    password_selector: str,
+    username_value: str,
+    password_value: str,
+    url: str = "",
+    submit_selector: str = "",
+) -> str:
+    """Run the full login flow: open url (if given), wait for form, enter username and password, then submit. Use selector_hints first to find the right selectors (e.g. input[name=user], input[type=password], button[type=submit]). If submit_selector is empty, submits by pressing Enter on the password field. Returns page content after login so you can verify success."""
+    steps = []
+    if url and url.strip():
+        r = send("goto", {"url": url.strip()})
+        steps.append(r)
+        if r.startswith("Error:"):
+            return "\n".join(steps)
+    r = send("wait_for_selector", {"selector": username_selector, "timeout": 10000})
+    steps.append(f"Username field: {r}")
+    if r.startswith("Error:"):
+        return "\n".join(steps)
+    r = send("fill", {"selector": username_selector, "value": username_value})
+    steps.append(r)
+    if r.startswith("Error:"):
+        return "\n".join(steps)
+    r = send("type_text", {"selector": password_selector, "value": password_value})
+    steps.append(r)
+    if r.startswith("Error:"):
+        return "\n".join(steps)
+    if submit_selector and submit_selector.strip():
+        r = send("click", {"selector": submit_selector.strip()})
+    else:
+        r = send("press_enter", {"selector": password_selector})
+    steps.append(r)
+    if r.startswith("Error:"):
+        return "\n".join(steps)
+    send("wait", {"seconds": 4})
+    content = send("content", {})
+    steps.append("--- Page after login ---")
+    steps.append(content[:3000] if len(content) > 3000 else content)
+    return "\n".join(steps)
+
+
+@tool
 def press_key(key: str, selector: str = "") -> str:
     """Press a key. Key names: Enter, Tab, Escape, Backspace, ArrowDown, etc. Optionally give a selector to focus first."""
     return send("press_key", {"key": key, "selector": selector or None})

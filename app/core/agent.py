@@ -7,7 +7,8 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 # When tools are enabled, prepend this so the model uses available tools
 AGENT_SYSTEM_PROMPT = """You have access to tools and must use them when relevant:
 - web_search: search the web for current information. Use it when the user asks for recent info, news, or to look something up.
-- get_page, open_url, page_content, click, fill, etc.: open and interact with web pages. Use them when the user asks to visit a site, read a page, log in, or do something on the web.
+- get_page, open_url, page_content, click, fill, login, etc.: open and interact with web pages. To log in: use open_url(login_page), then selector_hints() to find username/password/submit selectors, then login(username_selector, password_selector, username, password, url='', submit_selector) or use fill + type_text + click/press_enter. You can log in; do not claim you cannot due to technical limitations.
+- send_email, list_inbox, get_email, summarize_inbox, search_emails, create_draft: email (Gmail/Outlook/SendGrid). Use to send, read, summarize inbox, search, or save a draft. Combine with recall_memory for follow-ups (e.g. "follow up if no reply in 3 days").
 - recall_memory: retrieve relevant long-term user memory (preferences, past facts). Use when the user refers to something they said before or asks what you remember.
 - store_memory: save a long-term memory when the user says "remember that..." or asks you to remember something.
 - search_knowledge_base: search internal docs, FAQs, policies. Use when the user asks about company info or documented knowledge.
@@ -33,22 +34,23 @@ from tools.browser import (
     BROWSER_SESSION_TOOLS,
 )
 from tools.browser.web_search import web_search
+from tools.email import EMAIL_TOOLS
 
 
 def _build_agent():
     settings = get_settings()
-    default_model = "mistralai/devstral-2-123b-instruct-2512"
-    model_name = default_model
+    default_model = "deepseek-ai/deepseek-v3.1-terminus"
+    model_name = (settings.nvidia_model or "").strip() or default_model
 
     llm = ChatNVIDIA(
         model=model_name,
         nvidia_api_key=settings.nvidia_api_key,
-        temperature=1,
-        top_p=1,
-        max_completion_tokens=16384,
+        temperature=0.2,
+        top_p=0.7,
+        max_completion_tokens=8192,
         verbose=True,
         model_kwargs={
-            "enable_thinking": True
+            "thinking": True
         },
     )
 
@@ -56,6 +58,7 @@ def _build_agent():
         *BROWSER_ONE_OFF_TOOLS,
         *BROWSER_SESSION_TOOLS,
         web_search,
+        *EMAIL_TOOLS,
         *AGENT_EXTRAS_TOOLS,
     ]
     llm_with_tools = llm.bind_tools(tools)

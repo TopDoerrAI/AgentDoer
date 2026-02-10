@@ -1,4 +1,5 @@
 """Extra agent tools: recall_memory, store_memory, search_knowledge_base, run_python, get_user_context."""
+import logging
 import re
 import subprocess
 import sys
@@ -8,6 +9,8 @@ from langchain_nvidia_ai_endpoints import NVIDIAEmbeddings
 
 from app.core.config import get_settings
 from app.core.supabase_client import get_supabase_client
+
+logger = logging.getLogger(__name__)
 
 # Lazy embedding model (needs NVIDIA_API_KEY)
 _embedder = None
@@ -32,6 +35,7 @@ def recall_memory(query: str, user_id: str = "") -> str:
     """Retrieve relevant long-term user memory. Use when the user refers to something they said before, preferences, or 'remember when'."""
     client = get_supabase_client()
     if not client:
+        logger.info("recall_memory: Supabase client is None (memory not configured).")
         return "Memory is not configured (Supabase disabled)."
     try:
         emb = _get_embedder().embed_query(query)
@@ -42,9 +46,13 @@ def recall_memory(query: str, user_id: str = "") -> str:
             {"query_embedding": emb_str, "match_count": 5, "filter_user_id": user_id or None},
         ).execute()
         if not r.data or len(r.data) == 0:
+            logger.debug("recall_memory: no matches for query=%r", query[:50])
             return "No relevant memories found."
-        return "\n".join(m.get("content", "") for m in r.data)
+        out = "\n".join(m.get("content", "") for m in r.data)
+        logger.info("recall_memory: found %d memory/ies for query=%r", len(r.data), query[:50])
+        return out
     except Exception as e:
+        logger.exception("recall_memory failed: %s", e)
         return f"Memory recall failed: {e}"
 
 
@@ -53,6 +61,7 @@ def store_memory(content: str, user_id: str = "") -> str:
     """Store ONE atomic long-term fact (e.g. a preference, decision, or constraint). Use when the user says 'remember that...'. Do NOT store chat verbatim or multiple facts in one call."""
     client = get_supabase_client()
     if not client:
+        logger.info("store_memory: Supabase client is None (memory not configured).")
         return "Memory is not configured (Supabase disabled)."
     try:
         emb = _get_embedder().embed_query(content)
@@ -62,8 +71,10 @@ def store_memory(content: str, user_id: str = "") -> str:
             "content": content,
             "embedding": emb_str,
         }).execute()
+        logger.info("store_memory: stored content=%r", content[:80])
         return "Stored in long-term memory."
     except Exception as e:
+        logger.exception("store_memory failed: %s", e)
         return f"Store memory failed: {e}"
 
 

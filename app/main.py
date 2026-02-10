@@ -1,9 +1,16 @@
 """FastAPI application entrypoint."""
+import logging
+import os
 import sys
 from pathlib import Path
 
 # Project root (parent of app/)
 _ROOT = Path(__file__).resolve().parent.parent
+
+# Load .env FIRST so SUPABASE_*, NVIDIA_*, etc. are set before any app code reads them.
+# override=True so .env wins (important when uvicorn reload spawns a worker that may not inherit env).
+from dotenv import load_dotenv
+load_dotenv(_ROOT / ".env", override=True)
 
 # Ensure project root is on path when run as: python app/main.py
 if __name__ == "__main__" or "app" not in sys.modules:
@@ -12,15 +19,15 @@ if __name__ == "__main__" or "app" not in sys.modules:
 
 from contextlib import asynccontextmanager
 
-from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import router
 from app.core.config import get_settings
 
-# Load .env from project root so it works when run via run_api.py or uvicorn from any cwd
-load_dotenv(_ROOT / ".env")
+# Log level for agent/tools (set LOG_LEVEL=DEBUG to see memory, Supabase, etc.)
+logging.basicConfig(level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO))
+_log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -49,6 +56,12 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
+# Log Supabase/memory status at startup
+if get_settings().supabase_enabled:
+    _log.info("Supabase enabled: memory and conversation persistence are on.")
+else:
+    _log.info("Supabase disabled (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not set). Memory off.")
 
 if __name__ == "__main__":
     import os

@@ -3,10 +3,12 @@
 import os
 from pathlib import Path
 
+# Project root = directory containing this file. Load .env first so env vars are set
+# before uvicorn (and the reload worker) start. override=True so .env wins over shell env.
+_ROOT = Path(__file__).resolve().parent
+_env_path = _ROOT / ".env"
 from dotenv import load_dotenv
-
-# Load .env from project root (same folder as run_api.py)
-load_dotenv(Path(__file__).resolve().parent / ".env")
+load_dotenv(_env_path, override=True)
 
 import uvicorn
 

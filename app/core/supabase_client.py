@@ -1,4 +1,5 @@
 """Supabase client and conversation persistence. Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (use the service role key, not anon)."""
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -6,6 +7,8 @@ from langchain_core.messages import BaseMessage
 from langchain_core.messages import messages_from_dict, messages_to_dict
 
 from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 # Table name for conversation state (one row per session)
 CONVERSATIONS_TABLE = "agent_conversations"
@@ -24,12 +27,18 @@ def _get_client():
         return _supabase
     settings = get_settings()
     if not settings.supabase_enabled:
+        logger.info(
+            "Supabase disabled: SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY not set or empty. "
+            "Memory and conversation persistence will not be available."
+        )
         return None
     try:
         from supabase import create_client
         _supabase = create_client(settings.supabase_url, settings.supabase_key)
+        logger.info("Supabase client connected (memory and conversation persistence enabled).")
         return _supabase
-    except Exception:
+    except Exception as e:
+        logger.warning("Supabase client failed to connect: %s. Memory disabled.", e)
         return None
 
 
