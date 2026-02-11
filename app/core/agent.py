@@ -68,6 +68,8 @@ def _build_agent():
         response = llm_with_tools.invoke(state["messages"])
         return {"messages": [response]}
 
+    # USE AN EVALUATION NODE TO CHECK IF THE AGENT SHOULD CONTINUE OR NOT. !!!!!
+    
     def should_continue(state: MessagesState) -> str:
         last = state["messages"][-1]
         if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
@@ -80,6 +82,8 @@ def _build_agent():
     graph.add_edge(START, "agent")
     graph.add_conditional_edges("agent", should_continue)
     graph.add_edge("tools", "agent")
+
+    
 
     return graph.compile()
 
