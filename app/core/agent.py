@@ -14,6 +14,7 @@ AGENT_SYSTEM_PROMPT = """You have access to tools and must use them when relevan
 - search_knowledge_base: search internal docs, FAQs, policies. Use when the user asks about company info or documented knowledge.
 - run_python: run safe Python code for math, parsing, or calculations. Use for numeric answers, formulas, or data formatting.
 - get_user_context: get user plan, usage, preferences. Use when you need the user's tier, limits, or settings (pass their user_id if known).
+- crawl_website: crawl one or more sites from seed URLs (respects robots.txt, rate limits). Use when the user wants to discover or index many pages from a domain (e.g. 'crawl this site', 'index all docs from this URL'). For a single page use get_page or open_url instead.
 
 Do not say you cannot search or access websites. Use the tools and then answer from the results."""
 
@@ -34,6 +35,7 @@ from tools.browser import (
     BROWSER_SESSION_TOOLS,
 )
 from tools.browser.web_search import web_search
+from tools.crawler import crawl_website
 from tools.email import EMAIL_TOOLS
 
 
@@ -58,6 +60,7 @@ def _build_agent():
         *BROWSER_ONE_OFF_TOOLS,
         *BROWSER_SESSION_TOOLS,
         web_search,
+        crawl_website,
         *EMAIL_TOOLS,
         *AGENT_EXTRAS_TOOLS,
     ]

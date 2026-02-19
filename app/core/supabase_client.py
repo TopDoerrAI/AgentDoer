@@ -21,6 +21,18 @@ def get_supabase_client():
     return _get_client()
 
 
+def _validate_supabase_url(url: str) -> bool:
+    """Ensure URL looks like a valid Supabase endpoint (avoids DNS 'Name or service not known' from typos)."""
+    if not url or not url.startswith("https://"):
+        return False
+    # Must have a host (e.g. https://xxxx.supabase.co)
+    rest = url[8:].strip()
+    if not rest or rest.startswith("/"):
+        return False
+    host = rest.split("/")[0].split(":")[0]
+    return bool(host and "." in host)
+
+
 def _get_client():
     global _supabase
     if _supabase is not None:
@@ -32,9 +44,20 @@ def _get_client():
             "Memory and conversation persistence will not be available."
         )
         return None
+    url = settings.supabase_url
+    if not _validate_supabase_url(url):
+        logger.warning(
+            "SUPABASE_URL does not look valid (expected https://your-project.supabase.co). "
+            "Check Heroku config: heroku config:get SUPABASE_URL -a your-app"
+        )
     try:
         from supabase import create_client
-        _supabase = create_client(settings.supabase_url, settings.supabase_key)
+        try:
+            from supabase.lib.client_options import ClientOptions
+            options = ClientOptions(timeout=settings.supabase_timeout_seconds)
+            _supabase = create_client(url, settings.supabase_key, options=options)
+        except (ImportError, TypeError):
+            _supabase = create_client(url, settings.supabase_key)
         logger.info("Supabase client connected (memory and conversation persistence enabled).")
         return _supabase
     except Exception as e:
@@ -89,16 +112,16 @@ def get_conversation(session_id: str) -> list[BaseMessage]:
         normalized = []
         for i, m in enumerate(raw):
             if not isinstance(m, dict):
-                print("Supabase get_conversation: skip non-dict at index", i, type(m))
+                logger.debug("Supabase get_conversation: skip non-dict at index %s %s", i, type(m))
                 continue
             try:
                 normalized.append(_normalize_message_dict(m))
             except (ValueError, KeyError) as e:
-                print("Supabase get_conversation: skip bad message at index", i, e)
+                logger.debug("Supabase get_conversation: skip bad message at index %s %s", i, e)
                 continue
         return messages_from_dict(normalized) if normalized else []
     except Exception as e:
-        print("Supabase get_conversation error:", e)
+        logger.warning("Supabase get_conversation error: %s", e)
         return []
 
 
@@ -124,4 +147,4 @@ def save_conversation(
             on_conflict="session_id",
         ).execute()
     except Exception as e:
-        print("Supabase save_conversation error:", e)
+        logger.warning("Supabase save_conversation error: %s", e)

@@ -16,6 +16,10 @@ supabase>=2.0
 playwright>=1.49
 duckduckgo-search>=8.0
 
+# Crawler (fetch, parse, robots.txt)
+requests>=2.32
+beautifulsoup4>=4.12
+
 # Email: stdlib (imaplib/smtplib) for Gmail/Outlook. For SendGrid: pip install sendgrid
 
 # Env

@@ -99,6 +99,14 @@ class Settings:
     def supabase_enabled(self) -> bool:
         return bool(self.supabase_url and self.supabase_key)
 
+    @property
+    def supabase_timeout_seconds(self) -> float:
+        raw = os.getenv("SUPABASE_TIMEOUT_SECONDS", "10").strip()
+        try:
+            return max(1.0, min(60.0, float(raw)))
+        except ValueError:
+            return 10.0
+
     # API
     @property
     def api_title(self) -> str:
@@ -126,6 +134,27 @@ class Settings:
     @property
     def python_timeout_seconds(self) -> int:
         return int(os.getenv("PYTHON_TIMEOUT_SECONDS", "10"))
+
+    # Crawler: limits and politeness
+    @property
+    def crawl_max_pages(self) -> int:
+        return max(1, min(500, int(os.getenv("CRAWL_MAX_PAGES", "50"))))
+
+    @property
+    def crawl_max_depth(self) -> int:
+        return max(1, min(20, int(os.getenv("CRAWL_MAX_DEPTH", "3"))))
+
+    @property
+    def crawl_timeout_seconds(self) -> int:
+        return max(5, min(300, int(os.getenv("CRAWL_TIMEOUT_SECONDS", "60"))))
+
+    @property
+    def crawl_request_delay_seconds(self) -> float:
+        raw = os.getenv("CRAWL_REQUEST_DELAY", "1.0").strip()
+        try:
+            return max(0.0, min(10.0, float(raw)))
+        except ValueError:
+            return 1.0
 
     # CORS: comma-separated origins (e.g. http://localhost:3000) or * for all
     @property
