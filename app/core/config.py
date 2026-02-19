@@ -78,6 +78,19 @@ class Settings:
     def sendgrid_api_key(self) -> str:
         return os.getenv("SENDGRID_API_KEY", "").strip()
 
+    # Sender identity for email sign-off (avoids [Your Name] / [Company] placeholders)
+    @property
+    def email_sender_name(self) -> str:
+        return os.getenv("EMAIL_SENDER_NAME", "").strip()
+
+    @property
+    def email_sender_company(self) -> str:
+        return os.getenv("EMAIL_SENDER_COMPANY", "").strip()
+
+    @property
+    def email_sender_contact(self) -> str:
+        return os.getenv("EMAIL_SENDER_CONTACT", "").strip()
+
     @property
     def email_enabled(self) -> bool:
         """True if we can send (SMTP or SendGrid) or read (IMAP)."""

@@ -82,6 +82,45 @@ def _parse_message(raw: bytes) -> dict:
     }
 
 
+def _email_signature() -> str:
+    """Build sign-off block from config. Empty if no sender name set."""
+    s = get_settings()
+    name = s.email_sender_name
+    if not name:
+        return ""
+    lines = ["Best regards,", name]
+    if s.email_sender_company:
+        lines.append(s.email_sender_company)
+    if s.email_sender_contact:
+        lines.append(s.email_sender_contact)
+    return "\n".join(lines)
+
+
+def _strip_placeholder_signature(body: str) -> str:
+    """Remove common placeholder lines so we can append a real signature."""
+    import re
+    # Remove lines like [Your Name], [Your Position/Company], [Contact Information], [Company], etc.
+    body = re.sub(r"\n\s*\[Your Name\].*", "", body, flags=re.I)
+    body = re.sub(r"\n\s*\[Your Position/Company\].*", "", body, flags=re.I)
+    body = re.sub(r"\n\s*\[Contact Information\].*", "", body, flags=re.I)
+    body = re.sub(r"\n\s*\[Company\].*", "", body, flags=re.I)
+    body = re.sub(r"\n\s*\[Name\].*", "", body, flags=re.I)
+    return body.rstrip()
+
+
+def _prepare_body(body: str) -> str:
+    """Strip placeholder sign-off and append configured signature if set."""
+    body = _strip_placeholder_signature(body)
+    sig = _email_signature()
+    if not sig:
+        return body
+    if body and not body.endswith("\n"):
+        body += "\n\n"
+    elif body:
+        body = body.rstrip() + "\n\n"
+    return body + sig
+
+
 def _ensure_email_configured(need_imap: bool = False, need_send: bool = False) -> str | None:
     s = get_settings()
     if not s.email_enabled:
@@ -99,10 +138,11 @@ def _ensure_email_configured(need_imap: bool = False, need_send: bool = False) -
 
 @tool
 def send_email(to: str, subject: str, body: str, cc: str = "", bcc: str = "") -> str:
-    """Send an email. Use for follow-ups, replies, or new messages. to/subject/body required; cc and bcc optional (comma-separated)."""
+    """Send an email. Use for follow-ups, replies, or new messages. to/subject/body required; cc and bcc optional (comma-separated). Sign-off is added from config (EMAIL_SENDER_NAME, etc.); never use [Your Name] or similar placeholders."""
     err = _ensure_email_configured(need_send=True)
     if err:
         return err
+    body = _prepare_body(body)
     s = get_settings()
     if s.sendgrid_api_key:
         return _send_via_sendgrid(to, subject, body, cc, bcc)
@@ -265,10 +305,11 @@ def search_emails(query: str, folder: str = "INBOX", max_results: int = 20) -> s
 
 @tool
 def create_draft(to: str, subject: str, body: str) -> str:
-    """Create an email draft (saved to Drafts folder) for the user to review and send later. Use when the user wants to 'draft' or 'prepare' an email without sending."""
+    """Create an email draft (saved to Drafts folder) for the user to review and send later. Use when the user wants to 'draft' or 'prepare' an email without sending. Sign-off is added from config; never use [Your Name] or similar placeholders."""
     err = _ensure_email_configured(need_imap=True)
     if err:
         return err
+    body = _prepare_body(body)
     s = get_settings()
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject

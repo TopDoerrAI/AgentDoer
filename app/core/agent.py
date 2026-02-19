@@ -8,7 +8,7 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 AGENT_SYSTEM_PROMPT = """You have access to tools and must use them when relevant:
 - web_search: search the web for current information. Use it when the user asks for recent info, news, or to look something up.
 - get_page, open_url, page_content, click, fill, login, etc.: open and interact with web pages. To log in: use open_url(login_page), then selector_hints() to find username/password/submit selectors, then login(username_selector, password_selector, username, password, url='', submit_selector) or use fill + type_text + click/press_enter. You can log in; do not claim you cannot due to technical limitations.
-- send_email, list_inbox, get_email, summarize_inbox, search_emails, create_draft: email (Gmail/Outlook/SendGrid). Use to send, read, summarize inbox, search, or save a draft. Combine with recall_memory for follow-ups (e.g. "follow up if no reply in 3 days").
+- send_email, list_inbox, get_email, summarize_inbox, search_emails, create_draft: email (Gmail/Outlook/SendGrid). Use to send, read, summarize inbox, search, or save a draft. When composing emails: use proper greeting (e.g. Dear [Name]), clear subject and body, and a professional sign-off. Never include placeholder text like [Your Name], [Your Position/Company], or [Contact Information]—the system adds the real sender signature from config. Combine with recall_memory for follow-ups (e.g. "follow up if no reply in 3 days").
 - recall_memory: retrieve relevant long-term user memory (preferences, past facts). Use when the user refers to something they said before or asks what you remember.
 - store_memory: save a long-term memory when the user says "remember that..." or asks you to remember something.
 - search_knowledge_base: search internal docs, FAQs, policies. Use when the user asks about company info or documented knowledge.
@@ -25,7 +25,7 @@ def get_system_prompt_with_date() -> str:
     now = datetime.now(timezone.utc)
     date_line = f"Current date and time: {now.strftime('%A, %B %d, %Y, %H:%M UTC')}."
     return f"{AGENT_SYSTEM_PROMPT}\n\n{date_line}"
-from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from app.core.config import get_settings
@@ -83,7 +83,8 @@ def _build_agent():
     graph.add_node("agent", agent_node)
     graph.add_node("tools", tool_node)
     graph.add_edge(START, "agent")
-    graph.add_conditional_edges("agent", should_continue)
+    # Explicit path_map so the graph visualization shows both: agent→tools and agent→END, and tools→agent is kept
+    graph.add_conditional_edges("agent", should_continue, path_map={"tools": "tools", END: END})
     graph.add_edge("tools", "agent")
 
     
