@@ -13,7 +13,7 @@ from langchain_nvidia_ai_endpoints import ChatNVIDIA
 # When tools are enabled, prepend this so the model uses available tools
 AGENT_SYSTEM_PROMPT = """You have access to tools and must use them when relevant:
 - web_search: search the web for current information. Use it when the user asks for recent info, news, or to look something up.
-- get_page, open_url, page_content, click, fill, login, etc.: open and interact with web pages. To log in: use open_url(login_page), then selector_hints() to find username/password/submit selectors, then login(username_selector, password_selector, username, password, url='', submit_selector) or use fill + type_text + click/press_enter. You can log in; do not claim you cannot due to technical limitations.
+- get_page, open_url, page_content, click, fill, login, etc.: open and interact with web pages. When the user asks to do something on a page (e.g. click a button, submit a form, sign in, add to cart): (1) open the page with open_url if needed, (2) call selector_hints() to get inputs and buttons with their id, name, and text, (3) use click(selector) or fill(selector, value) with a CSS selector that matches the relevant element (e.g. #submit-btn, button[type=submit], [name=email], or a button whose text matches). Always click or submit when the user asks for an action—do not stop after just reading the page. To log in: open_url(login_page), then selector_hints() to find username/password/submit selectors, then login(...) or use fill + type_text + click(submit_selector). You can log in and click buttons; do not claim you cannot due to technical limitations.
 - send_email, list_inbox, get_email, summarize_inbox, search_emails, create_draft: email (Gmail/Outlook/SendGrid). Use to send, read, summarize inbox, search, or save a draft. When composing emails: use proper greeting (e.g. Dear [Name]), clear subject and body, and a professional sign-off. Never include placeholder text like [Your Name], [Your Position/Company], or [Contact Information]—the system adds the real sender signature from config. Combine with recall_memory for follow-ups (e.g. "follow up if no reply in 3 days").
 - recall_memory: retrieve relevant long-term user memory (preferences, past facts). Use when the user refers to something they said before or asks what you remember.
 - store_memory: save a long-term memory when the user says "remember that..." or asks you to remember something.
@@ -29,7 +29,10 @@ def get_system_prompt_with_date() -> str:
     """System prompt plus current date/time so the agent knows 'today' without searching."""
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
-    date_line = f"Current date and time: {now.strftime('%A, %B %d, %Y, %H:%M UTC')}."
+    date_line = (
+        f"Current date and time: {now.strftime('%A, %B %d, %Y, %H:%M UTC')}. "
+        "Use this as the only source of truth for 'today' and the current year. Do not infer or correct the date from search results or webpage text (e.g. avoid mixing up 2025 vs 2026 or the day of month)."
+    )
     return f"{AGENT_SYSTEM_PROMPT}\n\n{date_line}"
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -74,7 +77,14 @@ def _build_agent():
     tool_node = ToolNode(tools)
 
     def agent_node(state: MessagesState) -> dict:
-        response = llm_with_tools.invoke(state["messages"])
+        # Prepend fresh system prompt with current date/time on every run so the agent
+        # always knows "now" (e.g. after tool calls or in long runs).
+        msgs = state["messages"]
+        if msgs and isinstance(msgs[0], SystemMessage):
+            messages_to_send = [SystemMessage(content=get_system_prompt_with_date())] + list(msgs[1:])
+        else:
+            messages_to_send = [SystemMessage(content=get_system_prompt_with_date())] + list(msgs)
+        response = llm_with_tools.invoke(messages_to_send)
         return {"messages": [response]}
 
     # USE AN EVALUATION NODE TO CHECK IF THE AGENT SHOULD CONTINUE OR NOT. !!!!!

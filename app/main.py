@@ -29,6 +29,10 @@ from app.core.config import get_settings
 logging.basicConfig(level=getattr(logging, os.getenv("LOG_LEVEL", "INFO").upper(), logging.INFO))
 _log = logging.getLogger(__name__)
 
+# Prevent third-party HTTP libs from logging at DEBUG (avoids leaking API keys/headers into logs)
+for _name in ("httpx", "httpcore", "hpack", "urllib3"):
+    logging.getLogger(_name).setLevel(logging.WARNING)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

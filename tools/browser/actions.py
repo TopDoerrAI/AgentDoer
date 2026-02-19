@@ -67,7 +67,7 @@ def get_input_value(selector: str) -> str:
 
 @tool
 def selector_hints() -> str:
-    """List inputs and buttons on the page with selectors (id, name, type). Use to find the right selectors for fill and click."""
+    """List inputs and buttons on the page with their id, name, type, and (for buttons) text. Call this before click or fill to get the right CSS selector: use #id, [name=...], or button text to build the selector for click(selector) or fill(selector, value)."""
     return send("selector_hints", {})
 
 
@@ -75,7 +75,7 @@ def selector_hints() -> str:
 
 @tool
 def click(selector: str) -> str:
-    """Click an element. CSS selector, e.g. 'button[type=submit]', '#login', 'a.next'."""
+    """Click a button, link, or any element. Use a CSS selector from selector_hints() (e.g. #submit, button[type=submit], [name=login], or match button text). Call this to submit forms or trigger actions the user asked for."""
     return send("click", {"selector": selector})
 
 
