@@ -56,16 +56,14 @@ def chat(req: ChatRequest) -> ChatResponse:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    new_messages = result["messages"]
-    # LangGraph returns only messages from this run; merge with input for full history
-    full_messages = messages + new_messages
+    # LangGraph invoke() returns the full state after the run (reducer merges node updates)
+    full_messages = result["messages"]
     last = full_messages[-1] if full_messages else None
     reply = last.content if hasattr(last, "content") and last.content else str(result)
 
     if settings.supabase_enabled:
         to_save = _answers_only(full_messages)
         save_conversation(session_id, to_save, user_id=req.user_id)
-        print("Messages in session:", len(to_save))
 
         # Post-response memory extraction: distilled facts only (do not vectorize chat verbatim)
         facts = extract_memory_facts(req.message, reply)

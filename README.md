@@ -80,6 +80,10 @@ Uses the same agent; edit the `prompt` variable in `main.py` or pass via env.
 | `SUPABASE_URL` | Optional; enables conversation persistence |
 | `SUPABASE_SERVICE_ROLE_KEY` or `SUPABASE_KEY` | Optional; required if using Supabase |
 
+## Docs
+
+- **[docs/AGENT_STATE_AND_SUPABASE.md](docs/AGENT_STATE_AND_SUPABASE.md)** – How the agent uses LangGraph state (MessagesState, reducer, invoke return value) and how Supabase is used (tables: agent_conversations, agent_memories, user_context, knowledge_chunks; RPCs: match_memories, match_knowledge).
+
 ## Troubleshooting
 
 - **`Could not find the table 'public.agent_memories'`**  

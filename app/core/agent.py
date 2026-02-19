@@ -1,4 +1,10 @@
-"""LangGraph agent: build and compile once, invoke with messages."""
+"""
+LangGraph agent: build and compile once, invoke with messages.
+
+State: Uses MessagesState (single key "messages"). Nodes return partial updates
+(deltas); the reducer merges them. invoke() returns the full state after the run.
+See docs/AGENT_STATE_AND_SUPABASE.md for state flow and Supabase usage.
+"""
 import os
 
 from langchain_core.messages import AIMessage, BaseMessage, SystemMessage
